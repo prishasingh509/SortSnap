@@ -1,6 +1,7 @@
 import json
+import base64
 import streamlit as st
-import anthropic
+from groq import Groq
 
 st.set_page_config(page_title="SortSnap", page_icon="♻️")
 st.title("♻️ SortSnap")
@@ -16,20 +17,21 @@ item, category (Wet / Dry-Recyclable / E-waste / Hazardous / Sanitary / Not wast
 bin_color, recyclable (true/false), disposal_steps (list of 2-3 short steps),
 eco_tip (one line). Write all values in {lang}."""
 
+MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+
 if img and st.button("Analyze", type="primary"):
     with st.spinner("Looking at it..."):
-        client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
-        import base64
+        client = Groq(api_key=st.secrets["GROQ_API_KEY"].strip())
         data = base64.b64encode(img.getvalue()).decode()
-        resp = client.messages.create(
-            model="claude-sonnet-5-5",
+        resp = client.chat.completions.create(
+            model=MODEL,
             max_tokens=600,
             messages=[{"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": img.type, "data": data}},
                 {"type": "text", "text": PROMPT},
+                {"type": "image_url", "image_url": {"url": f"data:{img.type};base64,{data}"}},
             ]}],
         )
-        raw = resp.content[0].text.strip().strip("`").removeprefix("json").strip()
+        raw = resp.choices[0].message.content.strip().strip("`").removeprefix("json").strip()
     try:
         r = json.loads(raw)
         st.image(img, width=300)
