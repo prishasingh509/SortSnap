@@ -17,7 +17,7 @@ item, category (Wet / Dry-Recyclable / E-waste / Hazardous / Sanitary / Not wast
 bin_color, recyclable (true/false), disposal_steps (list of 2-3 short steps),
 eco_tip (one line). Write all values in {lang}."""
 
-MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+MODEL = "qwen/qwen3.8-27b"
 
 if img and st.button("Analyze", type="primary"):
     with st.spinner("Looking at it..."):
@@ -25,13 +25,14 @@ if img and st.button("Analyze", type="primary"):
         data = base64.b64encode(img.getvalue()).decode()
         resp = client.chat.completions.create(
             model=MODEL,
-            max_tokens=600,
+            max_tokens=1500,
             messages=[{"role": "user", "content": [
                 {"type": "text", "text": PROMPT},
                 {"type": "image_url", "image_url": {"url": f"data:{img.type};base64,{data}"}},
             ]}],
         )
-        raw = resp.choices[0].message.content.strip().strip("`").removeprefix("json").strip()
+        raw = resp.choices[0].message.content
+        raw = raw[raw.find("{"): raw.rfind("}") + 1]
     try:
         r = json.loads(raw)
         st.image(img, width=300)
